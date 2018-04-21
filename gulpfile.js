@@ -31,7 +31,7 @@ const jsLibsList = [
 
 const SRC_PATH = {
   sass: `${SRC_DIR}/scss/**/*.scss`,
-  js: [`${SRC_DIR}/js/**/*.js`, `!${SRC_DIR}/js/libs/**/*.js`],
+  js: [`${SRC_DIR}/js/**/*.js`, `${SRC_DIR}/js/**/*.frag`, `${SRC_DIR}/js/**/*.vert`, `${SRC_DIR}/js/**/*.glsl`, `!${SRC_DIR}/js/libs/**/*.js`],
   js_libs: jsLibsList.map(file => `${SRC_DIR}/js/libs/${file}`)
 };
 const DIST_PATH = {
@@ -125,6 +125,7 @@ gulp.task('browserReload', function () {
  */
 gulp.task('watch', function () {
   gulp.watch( SRC_PATH.sass, ['sass'] );
+  gulp.watch( SRC_PATH.js, ['js'] );
   gulp.watch( DIST_PATH.html, ['browserReload'] );
 });
 
@@ -134,6 +135,9 @@ gulp.task('watch', function () {
  */
 gulp.task('js', () => {
   return webpackStream( webpackConfig, webpack )
+    .on('error', function handleError() {
+      this.emit('end'); // watch中のエラーで死なないようにする。
+    })
     .pipe( gulp.dest( DIST_PATH.js ) )
     .pipe( browserSync.stream() );
 })
@@ -142,4 +146,4 @@ gulp.task('js', () => {
 
 gulp.task('default', ['build']);
 
-gulp.task('build', ['serve', 'watch', 'sass', 'js_libs']);
+gulp.task('build', ['serve', 'watch', 'sass', 'js_libs', 'js']);

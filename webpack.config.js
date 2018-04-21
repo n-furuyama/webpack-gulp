@@ -33,6 +33,18 @@ module.exports = {
           }
         ],
         exclude: /node_modules/,
+      },
+      {
+        test: /\.(glsl|frag|vert)$/,
+        use: [
+          {
+            loader: 'raw-loader',
+          },
+          {
+            loader: 'glslify-loader',
+          }
+        ],
+        exclude: /node_modules/,
       }
     ]
   }
