@@ -7,16 +7,20 @@ const plumber = require('gulp-plumber');
 const concat = require("gulp-concat");
 const uglify = require("gulp-uglify");
 const rename = require("gulp-rename");
+const connectSSI = require('connect-ssi');
+
+const ejs = require("gulp-ejs");
+
 const webpackStream = require("webpack-stream");
 const webpack = require("webpack");
 
 
 const BASE_PATH = __dirname;
-const PROJECT_DIR = ''; // srcの書き出し先がルートではないときに指定 例：xxxxx.com/test/ -> '/test'
+const BASE_DIR = ''; // srcの書き出し先がルートではないときに指定 例：xxxxx.com/test/ -> '/test'
 const SRC_DIR = `${BASE_PATH}/src`;
 const DIST_DIR = `${BASE_PATH}/dist`;
 const webpackConfig = require( `${BASE_PATH}/webpack.config` );
-const isProduction = process.env.NODE_ENV === 'production';
+const isProduction = process.env.NODE_ENV === 'production' ? true : false;
 
 
 /**
@@ -26,19 +30,23 @@ const jsLibsList = [
   // 'EaselJS/easeljs.min.js',
   // 'PreloadJS/preloadjs-0.6.2.combined.js',
   // 'SoundJS/soundjs-0.6.2.combined.js',
-  // 'TweenJS/tweenjs-0.6.2.combined.js'
+  // 'TweenJS/tweenjs-0.6.2.combined.js',
+  // isProduction ? 'vue.min.js' : 'vue.js'
 ];
 
 const SRC_PATH = {
   sass: `${SRC_DIR}/scss/**/*.scss`,
+  ejs: [`${SRC_DIR}/ejs/**/*.ejs`, `!${SRC_DIR}/ejs/**/_*.ejs`],
+  ejs_watch: [`${SRC_DIR}/ejs/**/*.ejs`],
   js: [`${SRC_DIR}/js/**/*.js`, `${SRC_DIR}/js/**/*.frag`, `${SRC_DIR}/js/**/*.vert`, `${SRC_DIR}/js/**/*.glsl`, `!${SRC_DIR}/js/libs/**/*.js`],
   js_libs: jsLibsList.map(file => `${SRC_DIR}/js/libs/${file}`)
 };
 const DIST_PATH = {
-  sass: `${DIST_DIR}${PROJECT_DIR}/assets/css/`,
-  js: `${DIST_DIR}${PROJECT_DIR}/assets/js/`,
-  js_libs: `${DIST_DIR}${PROJECT_DIR}/assets/js/libs/`,
-  html: `${DIST_DIR}${PROJECT_DIR}/**/*.html`,
+  sass: `${DIST_DIR}${BASE_DIR}/assets/css/`,
+  ejs: `${DIST_DIR}${BASE_DIR}/`,
+  js: `${DIST_DIR}${BASE_DIR}/assets/js/`,
+  js_libs: `${DIST_DIR}${BASE_DIR}/assets/js/libs/`,
+  html: `${DIST_DIR}${BASE_DIR}/**/*.html`,
 };
 
 
@@ -50,7 +58,13 @@ gulp.task('serve', () => {
     server: {
       baseDir: DIST_DIR,
       https: false,
-      port: 3000
+      port: 3000,
+      middleware: [
+        connectSSI({
+          baseDir: DIST_DIR,
+          ext: '.html'
+        })
+      ]
     }
   });
 });
@@ -78,7 +92,6 @@ gulp.task('js_libs', () => {
  * sass
  */
 gulp.task('sass', function () {
-  console.log(isProduction);
   if (isProduction) {
     return gulp.src( SRC_PATH.sass )
       .pipe( plumber({
@@ -109,6 +122,19 @@ gulp.task('sass', function () {
       .pipe( gulp.dest( DIST_PATH.sass ) )
       .pipe( browserSync.stream() );
   }
+});
+
+
+/**
+ * ejs
+ */
+gulp.task("ejs", function() {
+  gulp.src( SRC_PATH.ejs )
+    .pipe( plumber() )
+    .pipe( ejs() )
+    .pipe( rename({extname: ".html"} )) //拡張子をhtmlに
+    .pipe( gulp.dest( DIST_PATH.ejs ) ) //出力先
+    .pipe( browserSync.stream() );
 });
 
 
@@ -146,4 +172,4 @@ gulp.task('js', () => {
 
 gulp.task('default', ['build']);
 
-gulp.task('build', ['serve', 'watch', 'sass', 'js_libs', 'js']);
+gulp.task('build', ['serve', 'watch', 'sass', 'js_libs', 'js', 'ejs']);
